@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>테트리스 게임</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Jua&display=swap');
+
+        /* 기본 스타일 및 폰트 설정 */
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #1a1a2e; /* 어두운 배경 */
+            color: #ffffff;
+            font-family: 'Jua', sans-serif;
+            padding: 20px;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            align-items: center;
+            width: 100%;
+            max-width: 800px; /* 전체 컨테이너 최대 너비 */
+        }
+
+        .game-title {
+            font-size: 3rem;
+            color: #e94560; /* 강조 색상 */
+            text-shadow: 0 0 10px rgba(233, 69, 96, 0.7);
+            margin-bottom: 10px;
+        }
+
+        .game-area {
+            display: flex;
+            gap: 30px;
+            width: 100%;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        /* 게임 보드 스타일 */
+        #tetrisCanvas {
+            border: 4px solid #0f3460;
+            background-color: #0f1c34;
+            box-shadow: 0 0 20px rgba(15, 52, 96, 0.5);
+            border-radius: 8px;
+            touch-action: none; /* 터치 스크롤 방지 */
+        }
+
+        /* 정보 패널 (점수, 다음 조각) 스타일 */
+        .info-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            padding: 15px;
+            background: #16213e;
+            border-radius: 8px;
+            border: 2px solid #0f3460;
+            box-shadow: 0 0 15px rgba(22, 33, 62, 0.8);
+            min-width: 150px;
+        }
+
+        .score-box, .next-piece-box {
+            background-color: #0f3460;
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+            border: 1px solid #e94560;
+        }
+
+        .score-box p, .next-piece-box p {
+            margin: 5px 0;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        #score {
+            font-size: 2rem;
+            color: #90f1ef; /* 밝은 색상 */
+            text-shadow: 0 0 5px rgba(144, 241, 239, 0.7);
+        }
+
+        #nextCanvas {
+            border: 2px solid #e94560;
+            background-color: #1a1a2e;
+            border-radius: 4px;
+            margin-top: 10px;
+            box-shadow: inset 0 0 8px rgba(233, 69, 96, 0.5);
+        }
+
+        /* 게임 오버 메시지 스타일 */
+        #gameOverOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.85);
+            display: none; /* 기본 숨김 */
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 1000;
+        }
+
+        #gameOverMessage {
+            background: #e94560;
+            color: #1a1a2e;
+            padding: 40px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 0 30px rgba(233, 69, 96, 1);
+            animation: pulse 1.5s infinite alternate;
+        }
+
+        @keyframes pulse {
+            from { transform: scale(1); }
+            to { transform: scale(1.05); }
+        }
+
+        #finalScore {
+            font-size: 3rem;
+            margin: 10px 0 20px 0;
+            font-weight: bold;
+        }
+
+        #restartButton {
+            padding: 10px 20px;
+            font-size: 1.2rem;
+            background-color: #0f3460;
+            color: #ffffff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.1s;
+        }
+
+        #restartButton:hover {
+            background-color: #0c2a4f;
+            transform: scale(1.02);
+        }
+        
+        /* 새로운 게임 액션 버튼 스타일 */
+        .game-actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+            width: 100%;
+            max-width: 400px;
+            justify-content: center;
+        }
+
+        .action-button {
+            padding: 12px 25px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            background-color: #e94560;
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px #b8364c;
+            transition: background-color 0.1s, box-shadow 0.1s;
+        }
+        
+        .action-button:hover {
+            background-color: #d13e54;
+        }
+
+        .action-button:active {
+            box-shadow: 0 1px #b8364c;
+            transform: translateY(3px);
+        }
+
+
+        /* 모바일 터치 컨트롤 */
+        .controls {
+            display: none; /* 기본적으로 숨김 */
+            width: 100%;
+            max-width: 400px;
+            margin-top: 20px;
+            padding: 0 10px;
+        }
+
+        .dpad, .action-buttons-mobile { /* 모바일 액션 버튼 그룹 이름 변경 */
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 10px;
+        }
+
+        .dpad {
+            width: 100%;
+            justify-content: center;
+            display: grid;
+            grid-template-areas:
+                ". up ."
+                "left down right";
+            gap: 10px;
+        }
+        
+        .control-button {
+            background-color: #0f3460;
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            padding: 15px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            box-shadow: 0 4px #0a2343;
+            transition: background-color 0.1s, box-shadow 0.1s;
+            touch-action: manipulation;
+        }
+        
+        .control-button:active {
+            box-shadow: 0 1px #0a2343;
+            transform: translateY(3px);
+            background-color: #144075;
+        }
+
+        #control-up { grid-area: up; }
+        #control-left { grid-area: left; }
+        #control-down { grid-area: down; }
+        #control-right { grid-area: right; }
+        #control-rotate, #control-fall {
+            width: 48%; /* 액션 버튼 너비 조정 */
+        }
+        
+        /* 모바일 환경에서만 컨트롤 표시 */
+        @media (max-width: 768px) {
+            .game-area {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .info-panel {
+                flex-direction: row;
+                justify-content: space-around;
+                width: 100%;
+                max-width: 400px;
+            }
+            
+            #nextCanvas {
+                width: 70px !important;
+                height: 70px !important;
+            }
+
+            .controls {
+                display: block;
+            }
+
+            .game-actions {
+                 /* 모바일에서는 controls 영역에 포함되도록 수정 가능 */
+                 max-width: 100%;
+                 margin-bottom: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1 class="game-title">테트리스</h1>
+        
+        <div class="game-area">
+            <canvas id="tetrisCanvas" width="200" height="400"></canvas>
+            
+            <div class="info-panel">
+                <div class="score-box">
+                    <p>점수</p>
+                    <span id="score">0</span>
+                </div>
+                <div class="next-piece-box">
+                    <p>다음 조각</p>
+                    <canvas id="nextCanvas" width="80" height="80"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 새로운 게임 시작/일시정지 버튼 -->
+        <div class="game-actions">
+            <button id="startButton" class="action-button">게임 시작</button>
+            <button id="pauseButton" class="action-button" style="display: none;">일시정지</button>
+        </div>
+
+        <!-- 모바일/터치 컨트롤 -->
+        <div class="controls">
+            <div class="action-buttons-mobile">
+                <button id="control-rotate" class="control-button">회전 (↑)</button>
+                <button id="control-fall" class="control-button">강하 (Space)</button>
+            </div>
+            <div class="dpad">
+                <button id="control-up" class="control-button" disabled>위</button>
+                <button id="control-left" class="control-button">좌 (←)</button>
+                <button id="control-down" class="control-button">하 (↓)</button>
+                <button id="control-right" class="control-button">우 (→)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 게임 오버 오버레이 -->
+    <div id="gameOverOverlay">
+        <div id="gameOverMessage">
+            <h2>게임 오버!</h2>
+            <p>최종 점수:</p>
+            <div id="finalScore">0</div>
+            <button id="restartButton">다시 시작</button>
+        </div>
+    </div>
+
+    <script>
+        // --- 캔버스 설정 ---
+        const canvas = document.getElementById('tetrisCanvas');
+        const ctx = canvas.getContext('2d');
+        const nextCanvas = document.getElementById('nextCanvas');
+        const nextCtx = nextCanvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        const gameOverOverlay = document.getElementById('gameOverOverlay');
+        const finalScoreElement = document.getElementById('finalScore');
+        const restartButton = document.getElementById('restartButton');
+        const startButton = document.getElementById('startButton'); // 새로 추가
+        const pauseButton = document.getElementById('pauseButton'); // 새로 추가
+
+        // --- 게임 상수 ---
+        const ROWS = 20;
+        const COLS = 10;
+        const BLOCK_SIZE = canvas.width / COLS; // 200 / 10 = 20
+        canvas.height = ROWS * BLOCK_SIZE; // 400
+
+        // --- 테트리스 조각 정의 ---
+        const SHAPES = [
+            // I-조각 (Cyan)
+            { shape: [[0, 0, 0, 0], [1, 1, 1, 1], [0, 0, 0, 0], [0, 0, 0, 0]], color: '#00ffff' },
+            // J-조각 (Blue)
+            { shape: [[1, 0, 0], [1, 1, 1], [0, 0, 0]], color: '#0000ff' },
+            // L-조각 (Orange)
+            { shape: [[0, 0, 1], [1, 1, 1], [0, 0, 0]], color: '#ffa500' },
+            // O-조각 (Yellow)
+            { shape: [[1, 1], [1, 1]], color: '#ffff00' },
+            // S-조각 (Green)
+            { shape: [[0, 1, 1], [1, 1, 0], [0, 0, 0]], color: '#00ff00' },
+            // T-조각 (Purple)
+            { shape: [[0, 1, 0], [1, 1, 1], [0, 0, 0]], color: '#800080' },
+            // Z-조각 (Red)
+            { shape: [[1, 1, 0], [0, 1, 1], [0, 0, 0]], color: '#ff0000' }
+        ];
+
+        // --- 게임 상태 변수 ---
+        let board = [];
+        let score = 0;
+        let currentPiece = null;
+        let nextPiece = null;
+        let lastTime = 0;
+        let dropCounter = 0;
+        let dropInterval = 1000; // 1초마다 하강 (밀리초)
+        let isGameOver = false;
+        let isPaused = true; // 새로 추가: 초기에는 일시정지 상태로 시작
+
+        // --- 게임 초기화 ---
+        function initGame() {
+            // 보드 초기화: 0은 빈 공간을 의미
+            board = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+            score = 0;
+            scoreElement.textContent = score;
+            isGameOver = false;
+            isPaused = true; // 시작 시 일시정지 상태로 설정
+            
+            gameOverOverlay.style.display = 'none';
+            startButton.style.display = 'block'; // 시작 버튼 표시
+            pauseButton.style.display = 'none'; // 일시정지 버튼 숨김
+
+            // 애니메이션 루프 중지
+            if (window.animationFrameId) {
+                cancelAnimationFrame(window.animationFrameId);
+            }
+
+            // 다음 조각을 먼저 생성하고, 현재 조각으로 설정
+            nextPiece = createNewPiece();
+            newPiece(false); // 게임 시작 전이므로, 조각을 준비만 하고 게임 오버 검사는 하지 않음
+            drawBoard(); // 초기 보드를 그림
+        }
+
+        // --- 조각 생성 및 관리 ---
+        function createNewPiece() {
+            const randomIndex = Math.floor(Math.random() * SHAPES.length);
+            const pieceData = SHAPES[randomIndex];
+            
+            // 조각의 시작 위치 계산 (가운데 상단)
+            const piece = {
+                shape: pieceData.shape,
+                color: pieceData.color,
+                x: Math.floor(COLS / 2) - Math.floor(pieceData.shape[0].length / 2),
+                y: 0
+            };
+            
+            return piece;
+        }
+
+        // newPiece 함수 수정: 게임 오버 검사 여부를 인수로 받음
+        function newPiece(checkGameOver = true) {
+            currentPiece = nextPiece;
+            nextPiece = createNewPiece();
+            drawNextPiece();
+
+            // 새 조각을 놓을 위치에 충돌이 발생하면 게임 오버
+            if (checkGameOver && !isValid(currentPiece, 0, 0)) {
+                gameOver();
+            }
+        }
+
+        // --- 드로잉 함수 ---
+        // 단일 블록 그리기
+        function drawSquare(x, y, color, context, offset_x = 0, offset_y = 0) {
+            if (color === 0) return; // 빈 공간은 그리지 않음
+
+            // 캔버스 좌표 계산
+            const canvasX = x * BLOCK_SIZE + offset_x;
+            const canvasY = y * BLOCK_SIZE + offset_y;
+
+            context.fillStyle = color;
+            context.fillRect(canvasX, canvasY, BLOCK_SIZE, BLOCK_SIZE);
+            
+            // 블록 테두리 및 그림자 (입체감)
+            context.strokeStyle = '#ffffff50';
+            context.lineWidth = 1;
+            context.strokeRect(canvasX + 0.5, canvasY + 0.5, BLOCK_SIZE - 1, BLOCK_SIZE - 1);
+
+            // 빛나는 효과를 위한 그림자
+            context.shadowColor = color;
+            context.shadowBlur = 5;
+            context.shadowOffsetX = 0;
+            context.shadowOffsetY = 0;
+            context.fillRect(canvasX, canvasY, BLOCK_SIZE, BLOCK_SIZE);
+            
+            // 그림자 초기화
+            context.shadowColor = 'transparent';
+            context.shadowBlur = 0;
+        }
+
+        // 보드 그리기
+        function drawBoard() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 1. 고정된 블록 그리기
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    const color = board[r][c];
+                    drawSquare(c, r, color, ctx);
+                }
+            }
+
+            // 2. 현재 조각 그리기
+            if (currentPiece) {
+                for (let r = 0; r < currentPiece.shape.length; r++) {
+                    for (let c = 0; c < currentPiece.shape[r].length; c++) {
+                        if (currentPiece.shape[r][c]) {
+                            drawSquare(currentPiece.x + c, currentPiece.y + r, currentPiece.color, ctx);
+                        }
+                    }
+                }
+            }
+        }
+
+        // 다음 조각 미리보기 그리기
+        function drawNextPiece() {
+            // 미리보기 캔버스 초기화
+            nextCtx.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
+            
+            if (nextPiece) {
+                const shape = nextPiece.shape;
+                const color = nextPiece.color;
+                const shapeSize = shape.length;
+                const nextBlockSize = nextCanvas.width / 4; // 4x4 그리드 가정
+
+                // 중앙 정렬을 위한 오프셋 계산 (4x4 뷰포트 가정)
+                let offsetX = (nextCanvas.width - shapeSize * nextBlockSize) / 2;
+                let offsetY = (nextCanvas.height - shapeSize * nextBlockSize) / 2;
+                
+                // O-블록과 I-블록의 특수 처리 (시각적 중앙 정렬)
+                if (shapeSize === 2) { // O-블록
+                    offsetX += nextBlockSize / 2;
+                    offsetY += nextBlockSize / 2;
+                } else if (shapeSize === 4) { // I-블록
+                    offsetY -= nextBlockSize / 2;
+                }
+
+                for (let r = 0; r < shapeSize; r++) {
+                    for (let c = 0; c < shapeSize; c++) {
+                        if (shape[r][c]) {
+                            // 미리보기 캔버스에 단일 블록 그리기
+                            nextCtx.fillStyle = color;
+                            nextCtx.fillRect(
+                                c * nextBlockSize + offsetX,
+                                r * nextBlockSize + offsetY,
+                                nextBlockSize,
+                                nextBlockSize
+                            );
+                            // 테두리만 그리기 (게임 보드와 스타일 통일)
+                            nextCtx.strokeStyle = '#ffffff50';
+                            nextCtx.lineWidth = 1;
+                            nextCtx.strokeRect(
+                                c * nextBlockSize + offsetX + 0.5,
+                                r * nextBlockSize + offsetY + 0.5,
+                                nextBlockSize - 1,
+                                nextBlockSize - 1
+                            );
+                        }
+                    }
+                }
+            }
+        }
+
+
+        // --- 게임 로직 ---
+        // 조각의 유효성 검사 (충돌 및 경계)
+        function isValid(piece, dx, dy) {
+            for (let r = 0; r < piece.shape.length; r++) {
+                for (let c = 0; c < piece.shape[r].length; c++) {
+                    if (piece.shape[r][c]) {
+                        const newX = piece.x + c + dx;
+                        const newY = piece.y + r + dy;
+
+                        // 1. 보드 경계 검사
+                        if (newX < 0 || newX >= COLS || newY >= ROWS) {
+                            return false;
+                        }
+                        // 천장 충돌은 무시
+                        if (newY < 0) continue;
+
+                        // 2. 다른 블록과의 충돌 검사
+                        if (board[newY][newX]) {
+                            return false;
+                        }
+                    }
+                }
+            }
+            return true;
+        }
+
+        // 조각 이동
+        function move(dx, dy) {
+            if (isGameOver || isPaused) return;
+            if (currentPiece && isValid(currentPiece, dx, dy)) {
+                currentPiece.x += dx;
+                currentPiece.y += dy;
+                drawBoard();
+            } else if (dy === 1) { // 아래로 이동 시 충돌 -> 고정
+                lockPiece();
+                clearLines();
+                newPiece(true); // 새 조각 생성 시 게임 오버 검사
+            }
+        }
+        
+        // 조각 고정 (보드에 블록 추가)
+        function lockPiece() {
+            for (let r = 0; r < currentPiece.shape.length; r++) {
+                for (let c = 0; c < currentPiece.shape[r].length; c++) {
+                    if (currentPiece.shape[r][c]) {
+                        const boardX = currentPiece.x + c;
+                        const boardY = currentPiece.y + r;
+                        if (boardY >= 0) { // y좌표가 0 이상인 경우에만 고정
+                            board[boardY][boardX] = currentPiece.color;
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 조각 회전
+        function rotate() {
+            if (isGameOver || isPaused || !currentPiece) return;
+            
+            // 90도 시계 방향 회전 (새 배열 생성)
+            const shape = currentPiece.shape;
+            const N = shape.length;
+            const newShape = Array.from({ length: N }, () => Array(N).fill(0));
+            
+            for (let r = 0; r < N; r++) {
+                for (let c = 0; c < N; c++) {
+                    newShape[c][N - 1 - r] = shape[r][c];
+                }
+            }
+            
+            const originalShape = currentPiece.shape;
+            currentPiece.shape = newShape;
+
+            // 벽차기 (Wall Kick) 로직 (단순 구현)
+            if (!isValid(currentPiece, 0, 0)) {
+                // 오른쪽으로 한 칸 이동 시도
+                if (isValid(currentPiece, 1, 0)) {
+                    currentPiece.x += 1;
+                } 
+                // 왼쪽으로 한 칸 이동 시도
+                else if (isValid(currentPiece, -1, 0)) {
+                    currentPiece.x -= 1;
+                }
+                // 위로 한 칸 이동 시도 
+                else if (isValid(currentPiece, 0, -1)) {
+                    currentPiece.y -= 1;
+                }
+                // 모든 이동 실패 시 회전 취소
+                else {
+                    currentPiece.shape = originalShape;
+                }
+            }
+            drawBoard();
+        }
+
+        // 하드 드롭 (Spacebar)
+        function hardDrop() {
+            if (isGameOver || isPaused || !currentPiece) return;
+            let dropDist = 0;
+            // 가능한 최대 하강 거리 찾기
+            while (isValid(currentPiece, 0, dropDist + 1)) {
+                dropDist++;
+            }
+            currentPiece.y += dropDist;
+            
+            // 고정 및 다음 조각 생성
+            lockPiece();
+            clearLines();
+            newPiece(true); // 새 조각 생성 시 게임 오버 검사
+        }
+
+        // 라인 지우기 및 점수 계산
+        function clearLines() {
+            let linesCleared = 0;
+            
+            // 보드를 아래에서 위로 순회
+            for (let r = ROWS - 1; r >= 0; r--) {
+                // 행이 모두 채워졌는지 확인
+                if (board[r].every(cell => cell !== 0)) {
+                    linesCleared++;
+                    
+                    // 해당 행 지우기 (윗 행들을 한 칸씩 내림)
+                    for (let rr = r; rr > 0; rr--) {
+                        board[rr] = [...board[rr - 1]]; // 윗 행 복사
+                    }
+                    board[0] = Array(COLS).fill(0); // 맨 윗 행은 비움
+                    
+                    r++; // 행이 지워졌으므로 다음 행을 다시 검사해야 함
+                }
+            }
+
+            // 점수 업데이트 (테트리스 점수 규칙 단순화)
+            if (linesCleared > 0) {
+                const points = [0, 100, 300, 500, 800]; // 0, 1줄, 2줄, 3줄, 4줄 점수
+                score += points[linesCleared];
+                scoreElement.textContent = score;
+            }
+        }
+
+        // 게임 오버 처리
+        function gameOver() {
+            isGameOver = true;
+            isPaused = true; // 게임 오버 시 일시정지 상태로 변경
+            finalScoreElement.textContent = score;
+            gameOverOverlay.style.display = 'flex';
+            pauseButton.style.display = 'none'; 
+            startButton.style.display = 'none'; 
+            
+            // 애니메이션 루프 중지
+            if (window.animationFrameId) {
+                cancelAnimationFrame(window.animationFrameId);
+            }
+        }
+
+        // --- 게임 일시정지/재개 ---
+        function togglePause() {
+            if (isGameOver) return;
+            if (startButton.style.display === 'block') return; // 게임 시작 전에는 동작하지 않음
+
+            isPaused = !isPaused;
+            if (isPaused) {
+                pauseButton.textContent = '재개';
+            } else {
+                pauseButton.textContent = '일시정지';
+                // 게임 루프 재시작
+                lastTime = performance.now(); // 일시 정지 시간 보정
+                gameLoop();
+            }
+            drawBoard(); 
+        }
+        
+        // --- 게임 시작 (버튼 클릭) ---
+        function startGame() {
+            // 게임이 이미 시작되었지만 일시정지 상태인 경우
+            if (!isGameOver && !isPaused) {
+                 return;
+            } else if (isGameOver) {
+                // 게임 오버 상태에서 '시작' 버튼을 누른 경우 (재시작과 동일)
+                initGame();
+                // 이어서 시작 로직 실행
+            }
+
+            isPaused = false;
+            startButton.style.display = 'none';
+            pauseButton.style.display = 'block';
+            pauseButton.textContent = '일시정지';
+            
+            // dropInterval 리셋 (게임 속도 유지)
+            dropCounter = 0;
+            lastTime = performance.now();
+
+            // 게임 루프 시작
+            gameLoop();
+        }
+
+        // --- 게임 루프 (애니메이션) ---
+        function gameLoop(time = 0) {
+            if (isPaused || isGameOver) {
+                return;
+            }
+
+            const deltaTime = time - lastTime;
+            lastTime = time;
+            dropCounter += deltaTime;
+
+            // 일정 시간마다 조각 하강
+            if (dropCounter > dropInterval) {
+                move(0, 1);
+                dropCounter = 0;
+            }
+
+            // 그리기
+            drawBoard();
+
+            if (!isGameOver) {
+                window.animationFrameId = requestAnimationFrame(gameLoop);
+            }
+        }
+
+        // --- 이벤트 리스너 ---
+        // 키보드 입력
+        document.addEventListener('keydown', (event) => {
+            if (isGameOver) return;
+            
+            // P 키를 눌러 일시정지/재개
+            if (event.key === 'p' || event.key === 'P') {
+                 if (pauseButton.style.display !== 'none') {
+                    togglePause();
+                    return;
+                }
+            }
+            
+            if (isPaused) return; // 일시정지 상태에서는 다른 동작 금지
+
+            switch (event.key) {
+                case 'ArrowLeft': // 왼쪽
+                    move(-1, 0);
+                    break;
+                case 'ArrowRight': // 오른쪽
+                    move(1, 0);
+                    break;
+                case 'ArrowDown': // 소프트 드롭
+                    move(0, 1);
+                    break;
+                case 'ArrowUp': // 회전
+                    rotate();
+                    break;
+                case ' ': // 스페이스바 (하드 드롭)
+                    event.preventDefault(); // 스페이스바 기본 동작 방지
+                    hardDrop();
+                    break;
+            }
+        });
+        
+        // 재시작 버튼 (게임 오버 오버레이)
+        restartButton.addEventListener('click', () => {
+             initGame();
+             startGame(); // 재시작 후 바로 게임 시작
+        });
+
+        // 시작/일시정지 버튼 리스너 추가
+        startButton.addEventListener('click', startGame);
+        pauseButton.addEventListener('click', togglePause);
+
+        // --- 모바일/터치 컨트롤 설정 ---
+        // 일시정지 상태에서는 동작하지 않도록 수정
+        document.getElementById('control-left').addEventListener('click', () => { if (!isPaused) move(-1, 0); });
+        document.getElementById('control-right').addEventListener('click', () => { if (!isPaused) move(1, 0); });
+        document.getElementById('control-down').addEventListener('click', () => { if (!isPaused) move(0, 1); });
+        document.getElementById('control-rotate').addEventListener('click', () => { if (!isPaused) rotate(); });
+        document.getElementById('control-fall').addEventListener('click', () => { if (!isPaused) hardDrop(); });
+
+        // --- 초기 실행 ---
+        window.onload = function() {
+            // 초기 설정 (게임은 일시정지 상태로 대기)
+            initGame();
+        };
+
+    </script>
+</body>
+</html>
